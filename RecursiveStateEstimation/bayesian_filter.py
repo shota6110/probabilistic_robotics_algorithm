@@ -43,22 +43,27 @@ class BayesianFilter(object):
         """
         return np.reciprocal(np.sum(prob_list))
 
-    def calculate_belief(self, action, t=0):
+    def calculate_belief(self, action_sequence, t=1):
         """ Get belief of interested action
 
         Args:
-            action (string) : Action name in action list
+            action_sequence (list): the sequence of actions like [action0_1, action1_2, action2_3, ....]
+            t (int `Optional`): the loop number
 
         Returns:
             list (float): The belief list of states
         """
+
+        assert len(action_sequence) == t, "Action num should be equal to loop num !!!"
+
         # create column vector of before beliefs
-        if t == 0:
+        if t == 1:
             belief_before = np.reshape(self._state.states, (self._state.size, 1))
         else:
-            belief_before = np.reshape(self.calculate_belief(action, t-1), (self._state.size, 1))
+            belief_before = np.reshape(self.calculate_belief(action_sequence[1:], t-1), (self._state.size, 1))
+
         # get action's index
-        action_index = self._actions.get_index(action)
+        action_index = self._actions.get_index(action_sequence[0])
         # calculate belief_bar
         belief_bar = self._prob_matrix[:, action_index, :].dot(belief_before)
         # calculate belief
@@ -67,16 +72,3 @@ class BayesianFilter(object):
         normalized_beliefs = self._get_ita(beliefs) * beliefs
 
         return np.round(normalized_beliefs.flatten(), 3)
-
-
-if __name__ == '__main__':
-    state_prob = np.array([0.5, 0.5])
-    prob_matrix = np.array([[[1.0, 0.0], [1.0, 0.0]],
-                            [[0.8, 0.2], [0.0, 1.0]]], dtype=np.float32)
-
-    state = State(state_prob, prob_matrix)
-    actions = Action(['push', 'do_nothing'])
-    observations = Observation([[0.6, 0.4], [0.2, 0.8]])
-
-    b = BayesianFilter(state, actions, observations)
-    print(b.calculate_belief('push', 9))
